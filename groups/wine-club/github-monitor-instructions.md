@@ -57,23 +57,43 @@ When the `claude` bot or other automated tools comment on your pull requests:
 3. Take any requested actions
 
 #### For Chief PRD Implementation:
-When asked to implement a Chief PRD (e.g., `chief customer-redact`):
-1. **Read the PRD files**:
-   - `.chief/prds/<prd-name>/prd.md` for human context
-   - `.chief/prds/<prd-name>/prd.json` for machine-readable stories
-2. **Consult `/workspace/group/chief-workflow-instructions.md`** for detailed workflow
-3. **Work sequentially** through user stories by priority order (lowest number = highest priority)
-4. **One story at a time**:
-   - Read acceptance criteria carefully
-   - Follow TDD when specified (write failing tests first, then implement)
-   - Implement all acceptance criteria
-   - Run tests and linters
-   - Commit with format: `feat: [US-XXX] - Story Title`
-   - Update `progress.md` with what was done, files modified, patterns discovered
-5. **After all stories complete**:
-   - Run full test suite
-   - Verify all acceptance criteria met
-   - Push branch and create PR
+When asked to run Chief PRDs (e.g., `chief customer-redact` or process all PRD branches):
+
+**Single PRD:**
+1. **Announce start**: Send message with PRD name and branch before starting
+2. **Run the chief command**: `chief <prd-name>` in the wine-club directory (run in background)
+3. **Monitor progress periodically**:
+   - Every 120 seconds, run `chief list` to check progress
+   - If progress percentage changes, send update message (e.g., "customer-redact: 3/8 stories (37%)")
+   - Continue monitoring until 100% complete
+4. **Handle issues if Chief gets stuck**:
+   - Review error messages in the TUI
+   - Check what story it's working on
+   - Help debug or fix blocking issues
+   - Resume with `s` after fixes
+5. **After successful completion**:
+   - Verify all user stories marked as complete
+   - Check that tests pass
+   - Review the commits made
+   - Send completion message with results (tests passed, PR created, etc.)
+
+**Queue Processing (Multiple PRDs):**
+1. **Discover PRD branches**:
+   - List all local branches
+   - For each branch, checkout and run `chief list`
+   - Parse output to identify unstarted PRDs (0/X, 0%)
+   - Send message listing discovered PRDs to process
+2. **Process each unstarted PRD**:
+   - Send message before starting each PRD (branch name, PRD name)
+   - Run `chief <prd-name>` in background
+   - Monitor with `chief list` every 120 seconds
+   - Send progress updates when percentage changes
+   - Send completion message (tests passed, PR created, etc.)
+   - After completion, automatically move to next branch
+3. **Skip completed or partial PRDs**:
+   - If `chief list` shows 100% complete, skip (already done)
+   - If partial progress, skip (needs manual intervention)
+4. **Report final summary** when all PRDs processed (total processed, any failures)
 
 ### 4. Reporting
 - **DO NOT** send a message if there is no new activity
