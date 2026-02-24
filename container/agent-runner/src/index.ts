@@ -399,14 +399,20 @@ async function runQuery(
   }
 
   // Discover additional directories mounted at /workspace/extra/*
-  // These are passed to the SDK so their CLAUDE.md files are loaded automatically
+  // Load their CLAUDE.md files and append to system prompt
   const extraDirs: string[] = [];
+  const extraClaudeMds: string[] = [];
   const extraBase = '/workspace/extra';
   if (fs.existsSync(extraBase)) {
     for (const entry of fs.readdirSync(extraBase)) {
       const fullPath = path.join(extraBase, entry);
       if (fs.statSync(fullPath).isDirectory()) {
         extraDirs.push(fullPath);
+        const claudeMdPath = path.join(fullPath, 'CLAUDE.md');
+        if (fs.existsSync(claudeMdPath)) {
+          extraClaudeMds.push(fs.readFileSync(claudeMdPath, 'utf-8'));
+          log(`Loaded CLAUDE.md from ${claudeMdPath}`);
+        }
       }
     }
   }
@@ -421,8 +427,8 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
-      systemPrompt: globalClaudeMd
-        ? { type: 'preset' as const, preset: 'claude_code' as const, append: globalClaudeMd }
+      systemPrompt: (globalClaudeMd || extraClaudeMds.length > 0)
+        ? { type: 'preset' as const, preset: 'claude_code' as const, append: [globalClaudeMd, ...extraClaudeMds].filter(Boolean).join('\n\n') }
         : undefined,
       allowedTools: [
         'Bash',
@@ -506,6 +512,15 @@ async function main(): Promise<void> {
       error: `Failed to parse input: ${err instanceof Error ? err.message : String(err)}`
     });
     process.exit(1);
+  }
+
+  // Secrets that should be visible to Bash subprocesses (e.g. gh CLI)
+  const BASH_VISIBLE_SECRETS = ['GITHUB_TOKEN'];
+
+  // Set bash-visible secrets in process.env so subprocesses inherit them
+  for (const key of BASH_VISIBLE_SECRETS) {
+    const value = containerInput.secrets?.[key];
+    if (value) process.env[key] = value;
   }
 
   // Build SDK env: merge secrets into process.env for the SDK only.
