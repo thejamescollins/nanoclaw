@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/Users/james/.nvm/versions/node/v22.22.0/bin/node:*)",
+      "Bash(/Users/james/.nvm/versions/node/v22.22.0/bin/npm run:*)",
+      "Bash(/Users/james/.nvm/versions/node/v22.22.0/bin/npx tsx:*)",
+      "Bash(/Users/james/nanoclaw/container/build.sh:*)",
+      "Bash(/usr/bin/env node:*)",
+      "Bash(docker run:*)",
+      "Bash(git:*)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
